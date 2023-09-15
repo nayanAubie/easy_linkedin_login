@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:easy_linkedin_login/src/utils/configuration.dart';
 import 'package:easy_linkedin_login/src/utils/logger.dart';
 import 'package:easy_linkedin_login/src/utils/startup/graph.dart';
 import 'package:easy_linkedin_login/src/utils/startup/injector.dart';
 import 'package:easy_linkedin_login/src/webview/actions.dart';
+import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 /// Class will fetch code and access token from the user
@@ -15,12 +15,10 @@ class LinkedInWebViewHandler extends StatefulWidget {
     this.appBar,
     this.destroySession = false,
     this.onCookieClear,
-    this.onWebViewCreated, // this is just for testing purpose
   });
 
   final bool? destroySession;
   final PreferredSizeWidget? appBar;
-  final Function(WebViewController)? onWebViewCreated;
   final Function(DirectionUrlMatch) onUrlMatch;
   final Function(bool)? onCookieClear;
 
@@ -29,8 +27,9 @@ class LinkedInWebViewHandler extends StatefulWidget {
 }
 
 class _LinkedInWebViewHandlerState extends State<LinkedInWebViewHandler> {
-  WebViewController? webViewController;
-  final CookieManager cookieManager = CookieManager();
+  late final WebViewController _webViewController;
+  final _cookieManager = WebViewCookieManager();
+  late final _viewModel = _ViewModel.from(context);
 
   @override
   void initState() {
@@ -38,51 +37,47 @@ class _LinkedInWebViewHandlerState extends State<LinkedInWebViewHandler> {
 
     if (widget.destroySession!) {
       log('LinkedInAuth-steps: cache clearing... ');
-      cookieManager.clearCookies().then((value) {
+      _cookieManager.clearCookies().then((value) {
         widget.onCookieClear?.call(true);
         log('LinkedInAuth-steps: cache clearing... DONE');
       });
     }
+
+    _webViewController = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onNavigationRequest: (NavigationRequest request) async {
+            log('LinkedInAuth-steps: navigationDelegate ... ');
+            final isMatch = _viewModel.isUrlMatchingToRedirection(
+              context,
+              request.url,
+            );
+            log(
+              'LinkedInAuth-steps: navigationDelegate '
+                  '[currentUrL: ${request.url}, isCurrentMatch: $isMatch]',
+            );
+
+            if (isMatch) {
+              widget.onUrlMatch(_viewModel.getUrlConfiguration(request.url));
+              log('Navigation delegate prevent... done');
+              return NavigationDecision.prevent;
+            }
+
+            return NavigationDecision.navigate;
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse(_viewModel.initialUrl()));
   }
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = _ViewModel.from(context);
     return Scaffold(
       appBar: widget.appBar,
       body: Builder(
         builder: (BuildContext context) {
-          return WebView(
-            initialUrl: viewModel.initialUrl(),
-            javascriptMode: JavascriptMode.unrestricted,
-            onWebViewCreated: (WebViewController webViewController) async {
-              log('LinkedInAuth-steps: onWebViewCreated ... ');
-
-              widget.onWebViewCreated?.call(webViewController);
-
-              log('LinkedInAuth-steps: onWebViewCreated ... DONE');
-            },
-            navigationDelegate: (NavigationRequest request) async {
-              log('LinkedInAuth-steps: navigationDelegate ... ');
-              final isMatch = viewModel.isUrlMatchingToRedirection(
-                context,
-                request.url,
-              );
-              log(
-                'LinkedInAuth-steps: navigationDelegate '
-                '[currentUrL: ${request.url}, isCurrentMatch: $isMatch]',
-              );
-
-              if (isMatch) {
-                widget.onUrlMatch(viewModel.getUrlConfiguration(request.url));
-                log('Navigation delegate prevent... done');
-                return NavigationDecision.prevent;
-              }
-
-              return NavigationDecision.navigate;
-            },
-            gestureNavigationEnabled: false,
-          );
+          return WebViewWidget(controller: _webViewController);
         },
       ),
     );

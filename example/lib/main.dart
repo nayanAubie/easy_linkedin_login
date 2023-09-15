@@ -104,12 +104,13 @@ class _LinkedInProfileExamplePageState
                         email: linkedInUser
                             .user.email!.elements![0].handleDeep!.emailAddress!,
                         profileImageUrl: linkedInUser
-                            .user
-                            .profilePicture!
-                            .displayImageContent!
-                            .elements![0]
-                            .identifiers![0]
-                            .identifier!,
+                                .user
+                                .profilePicture
+                                ?.displayImageContent
+                                ?.elements![0]
+                                .identifiers?[0]
+                                .identifier ??
+                            '',
                       );
 
                       setState(() {
@@ -137,10 +138,10 @@ class _LinkedInProfileExamplePageState
             mainAxisSize: MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              Text('First: ${user!.firstName} '),
-              Text('Last: ${user!.lastName} '),
-              Text('Email: ${user!.email}'),
-              Text('Profile image: ${user!.profileImageUrl}'),
+              Text('First: ${user?.firstName} '),
+              Text('Last: ${user?.lastName} '),
+              Text('Email: ${user?.email}'),
+              Text('Profile image: ${user?.profileImageUrl}'),
             ],
           ),
         ],
@@ -213,8 +214,8 @@ class _LinkedInAuthCodeExamplePageState
             mainAxisSize: MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              Text('Auth code: ${authorizationCode!.code} '),
-              Text('State: ${authorizationCode!.state} '),
+              Text('Auth code: ${authorizationCode?.code} '),
+              Text('State: ${authorizationCode?.state} '),
             ],
           ),
         ),
