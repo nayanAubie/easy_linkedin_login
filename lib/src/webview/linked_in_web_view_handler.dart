@@ -27,9 +27,9 @@ class LinkedInWebViewHandler extends StatefulWidget {
 }
 
 class _LinkedInWebViewHandlerState extends State<LinkedInWebViewHandler> {
-  late final WebViewController _webViewController;
+  late WebViewController _webViewController;
   final _cookieManager = WebViewCookieManager();
-  late final _viewModel = _ViewModel.from(context);
+  late _ViewModel _viewModel;
 
   @override
   void initState() {
@@ -42,7 +42,12 @@ class _LinkedInWebViewHandlerState extends State<LinkedInWebViewHandler> {
         log('LinkedInAuth-steps: cache clearing... DONE');
       });
     }
+  }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _viewModel = _ViewModel.from(context);
     _webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
@@ -55,7 +60,7 @@ class _LinkedInWebViewHandlerState extends State<LinkedInWebViewHandler> {
             );
             log(
               'LinkedInAuth-steps: navigationDelegate '
-                  '[currentUrL: ${request.url}, isCurrentMatch: $isMatch]',
+              '[currentUrL: ${request.url}, isCurrentMatch: $isMatch]',
             );
 
             if (isMatch) {
